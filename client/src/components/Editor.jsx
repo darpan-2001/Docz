@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 
+import { useParams } from 'react-router-dom'
+
 import {io} from 'socket.io-client'
 
 import styled from '@emotion/styled'
@@ -36,9 +38,12 @@ const Editor = () => {
 
     const [socket, setSocket] = useState()
     const [quill, setQuill] = useState()
+    const {id} = useParams()
 
     useEffect(() => {
         const quillServer = new Quill('#container', {theme: 'snow', modules: {toolbar: toolbarOptions}})
+        quillServer.disable()
+        quillServer.setText('Loading document')
         setQuill(quillServer)
     }, [])
 
@@ -84,6 +89,17 @@ const Editor = () => {
             socket && socket.off('receive-changes', handleChange)
         }
     },[quill, socket])
+
+    useEffect(() => {
+        if (quill === null || socket === null) return
+
+        socket && socket.once('load-document', document => {
+            quill && quill.setContents(document)
+            quill && quill.enable()
+        })
+
+        socket && socket.emit('get-document', id)
+    }, [quill, socket, id])
 
     return(
         <Component>
